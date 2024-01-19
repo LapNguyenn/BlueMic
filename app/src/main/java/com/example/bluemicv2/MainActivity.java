@@ -6,9 +6,14 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.media.audiofx.EnvironmentalReverb;
+import android.media.audiofx.Equalizer;
+import android.media.audiofx.PresetReverb;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -17,7 +22,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.media.AudioTrack;
-
 
 
 public class MainActivity extends AppCompatActivity {
@@ -32,12 +36,25 @@ public class MainActivity extends AppCompatActivity {
     private AudioTrack audioTrack;
     private int intBufferSize;
     private short[] shortsAudioData;
+    private short[] processedShortAudioData;
     private boolean isRecording = false;
-    private int intGain = 2;
+    //=========== Modify output sound
+    double amplitude  = 1;
+    double pitchFactor = 1;
+    private EnvironmentalReverb environmentalReverb;
+    private PresetReverb presetReverb;
+    private PresetReverb.Settings presetReverbSettings;
+    private Equalizer equalizer;
     private Thread thread;
     //=========== Widget
     private ImageButton btnStartVoice;
     private ImageButton btnStopVoice;
+
+    private SeekBar seekBar_amplitude;
+    private SeekBar seekBar_pitchFactor;
+
+    private TextView tv_amplitude;
+    private TextView tv_pitchFactor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +65,47 @@ public class MainActivity extends AppCompatActivity {
             //If not be granted, request permission again
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, MICROPHONE_REQUEST_CODE);
         }
+
+        seekBar_amplitude = findViewById(R.id.seekBar_amplitude);
+        seekBar_pitchFactor = findViewById(R.id.seekBar_pitchFactor);
+        tv_amplitude = findViewById(R.id.tv_amplitude);
+        tv_pitchFactor = findViewById(R.id.tv_pitchFactor);
+
+        seekBar_amplitude.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                amplitude = (double) seekBar_amplitude.getProgress()/100;
+                tv_amplitude.setText("Amplitude: " + amplitude);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        seekBar_pitchFactor.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                pitchFactor = (double) seekBar_pitchFactor.getProgress() /100;
+                tv_pitchFactor.setText("PitchFactor: " + pitchFactor);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
         //Click start voice button
         btnStartVoice = findViewById(R.id.btn_start_voice);
@@ -125,9 +183,11 @@ public class MainActivity extends AppCompatActivity {
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT);
         shortsAudioData = new short[intBufferSize];
+        processedShortAudioData = new short[intBufferSize];
+
         //Start a short record
         if(ContextCompat.checkSelfPermission(this, permissions[0]) == PackageManager.PERMISSION_GRANTED){
-            audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+            audioRecord = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION,
                     intRecordSampleRate,
                     AudioFormat.CHANNEL_IN_STEREO,
                     AudioFormat.ENCODING_PCM_16BIT,
@@ -147,15 +207,26 @@ public class MainActivity extends AppCompatActivity {
             //play short record
             while (isRecording){
                 audioRecord.read(shortsAudioData, 0, shortsAudioData.length);
-                for(int i = 0; i < shortsAudioData.length; i++){
-                    shortsAudioData[i] = (short) Math.min(shortsAudioData[i]*intGain, Short.MAX_VALUE);
+                // Reduce amplitude (biên độ)
+                for(int i = 0; i < processedShortAudioData.length; i++){
+                    processedShortAudioData[i] = (short) Math.min(shortsAudioData[i]*amplitude, Short.MAX_VALUE);
                 }
-                audioTrack.write(shortsAudioData, 0, shortsAudioData.length);
+                // Increase pitch (tần số)
+                for (int i = 0; i < processedShortAudioData.length; i++) {
+                    int newIndex = (int) (i / pitchFactor);
+                    if (newIndex < shortsAudioData.length) {
+                        processedShortAudioData[newIndex] = (short) Math.min(shortsAudioData[newIndex] + shortsAudioData[i], Short.MAX_VALUE);
+                    }
+                }
+                for (int i = 0; i < processedShortAudioData.length; i++) {
+                    processedShortAudioData[i] = (short) Math.max(processedShortAudioData[i] - shortsAudioData[i], Short.MIN_VALUE);
+                }
+
+                audioTrack.write(processedShortAudioData, 0, processedShortAudioData.length);
             }
         }else{
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, MICROPHONE_REQUEST_CODE);
             threadLoop();
         }
-
     }
 }

@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     tools:context=".MainActivity">
 
     <TextView
@@ -11,32 +12,84 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="OUTPUT RADIO"
-        android:textStyle="bold"
         android:textSize="24dp"
+        android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_amplitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Amplitude: 2"
+        android:textSize="20dp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@+id/tv_output_sound"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_amplitude" />
+    <SeekBar
+        android:id="@+id/seekBar_amplitude"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:max="200"
+        android:progress="0"
+        app:layout_constraintBottom_toTopOf="@+id/tv_pitchFactor"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tv_amplitude" />
+
+    <TextView
+        android:id="@+id/tv_pitchFactor"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="pitchFactor: 2.5"
+        android:textSize="20dp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/seekBar_pitchFactor"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_amplitude" />
+    <SeekBar
+        android:id="@+id/seekBar_pitchFactor"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:max="500"
+        android:progress="0"
+        app:layout_constraintBottom_toTopOf="@+id/layout_bottom"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tv_pitchFactor" />
+
     <LinearLayout
+        android:id="@+id/layout_bottom"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="80dp"
         android:gravity="center"
         android:orientation="horizontal"
-        android:layout_marginBottom="80dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        >
+        app:layout_constraintBottom_toBottomOf="parent">
+
         <ImageButton
             android:id="@+id/btn_start_voice"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:background="@drawable/ic_start_voice"
-            />
+            android:background="@drawable/ic_start_voice" />
+
         <ImageButton
             android:id="@+id/btn_stop_voice"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:src="@drawable/ic_stop_voice"
             android:background="@color/LightSlateGray"
-            />
+            android:src="@drawable/ic_stop_voice" />
     </LinearLayout>
+
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>
