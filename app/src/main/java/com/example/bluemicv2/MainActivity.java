@@ -70,11 +70,15 @@ public class MainActivity extends AppCompatActivity {
         seekBar_pitchFactor = findViewById(R.id.seekBar_pitchFactor);
         tv_amplitude = findViewById(R.id.tv_amplitude);
         tv_pitchFactor = findViewById(R.id.tv_pitchFactor);
+        tv_amplitude.setText("Amplitude: " + amplitude*100);
+        tv_pitchFactor.setText("pitchFactor: " + pitchFactor*100);
+        seekBar_amplitude.setProgress((int)amplitude*100);
+        seekBar_pitchFactor.setProgress((int) pitchFactor*100);
 
         seekBar_amplitude.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                amplitude = (double) seekBar_amplitude.getProgress()/100;
+                amplitude = (float) seekBar_amplitude.getProgress()/100;
                 tv_amplitude.setText("Amplitude: " + amplitude);
             }
 
@@ -177,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void threadLoop() {
         //Audio quality
-        int intRecordSampleRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC);
+        int intRecordSampleRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_VOICE_CALL);
         //Record length
         intBufferSize = AudioRecord.getMinBufferSize(intRecordSampleRate,
                 AudioFormat.CHANNEL_IN_MONO,
@@ -193,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
                     AudioFormat.ENCODING_PCM_16BIT,
                     intBufferSize);
 
-            audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
+            audioTrack = new AudioTrack(AudioManager.STREAM_VOICE_CALL,
                     intRecordSampleRate,
                     AudioFormat.CHANNEL_IN_STEREO,
                     AudioFormat.ENCODING_PCM_16BIT,
