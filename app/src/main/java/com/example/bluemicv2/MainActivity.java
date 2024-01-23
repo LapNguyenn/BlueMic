@@ -29,82 +29,21 @@ public class MainActivity extends AppCompatActivity {
     //=========== Record
     private boolean isRecording = false;
     //=========== Modify output sound
-    private float amplitude  = 1f;
-    private float pitchFactor = 1.86f;
-    protected int intRecordSampleRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_VOICE_CALL);
-    protected int intBufferSize = AudioRecord.getMinBufferSize(intRecordSampleRate,
-                    AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT);
-    protected int intOverlap = intBufferSize/4;
+
     //=========== Widget
     protected ImageButton btnStartVoice;
     protected ImageButton btnStopVoice;
-
-    private SeekBar seekBar_amplitude;
-    private SeekBar seekBar_pitchFactor;
-
-    private TextView tv_amplitude;
-    private TextView tv_pitchFactor;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        MyAudioProcessor chibiProcess = new MyAudioProcessor(amplitude, pitchFactor, intRecordSampleRate, intBufferSize, intOverlap);
+        MyAudioProcessor chibiProcess = new MyAudioProcessor();
         // Check permission
         if (!(ContextCompat.checkSelfPermission(this, permissions[0]) == PackageManager.PERMISSION_GRANTED)) {
             //If not be granted, request permission again
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, MICROPHONE_REQUEST_CODE);
         }
 
-        seekBar_amplitude = findViewById(R.id.seekBar_amplitude);
-        seekBar_pitchFactor = findViewById(R.id.seekBar_pitchFactor);
-        tv_amplitude = findViewById(R.id.tv_amplitude);
-        tv_pitchFactor = findViewById(R.id.tv_pitchFactor);
-        tv_amplitude.setText("Amplitude: " + String.format("%.1f", amplitude));
-        tv_pitchFactor.setText("pitchFactor: " + String.format("%.1f", pitchFactor));
-        seekBar_amplitude.setProgress((int)amplitude*100);
-        seekBar_pitchFactor.setProgress((int) pitchFactor*100);
-
-        seekBar_amplitude.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                amplitude = (float) seekBar_amplitude.getProgress()/100;
-                tv_amplitude.setText("Amplitude: " + amplitude);
-                chibiProcess.setAmplitude(amplitude);
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-
-        seekBar_pitchFactor.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                pitchFactor = (float) seekBar_pitchFactor.getProgress() /100;
-                tv_pitchFactor.setText("PitchFactor: " + pitchFactor);
-                if(chibiProcess != null){
-                    chibiProcess.setPitchFactor(pitchFactor);
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
 
         //Click start voice button
         btnStartVoice = findViewById(R.id.btn_start_voice);
@@ -119,6 +58,8 @@ public class MainActivity extends AppCompatActivity {
                         isRecording = true;
                         chibiProcess.startProcessing();
                         Toast.makeText(MainActivity.this, "Mic đã bật, có thể bắt dầu nói", Toast.LENGTH_SHORT).show();
+                        btnStartVoice.setVisibility(View.GONE);
+                        btnStopVoice.setVisibility(View.VISIBLE);
                     }
                 }
             }
@@ -132,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
                 if (isRecording) {
                     isRecording = false;
                     chibiProcess.stopProcessing();
+                    btnStartVoice.setVisibility(View.VISIBLE);
+                    btnStopVoice.setVisibility(View.GONE);
                 }
                 Toast.makeText(MainActivity.this, "Mic đã tắt", Toast.LENGTH_SHORT).show();
             }
