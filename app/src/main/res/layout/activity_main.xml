@@ -36,7 +36,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
-        android:max="200"
+        android:max="1000"
         android:progress="0"
         app:layout_constraintBottom_toTopOf="@+id/tv_pitchFactor"
         app:layout_constraintEnd_toEndOf="parent"
@@ -60,7 +60,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
-        android:max="500"
+        android:max="20000"
         android:progress="0"
         app:layout_constraintBottom_toTopOf="@+id/layout_bottom"
         app:layout_constraintEnd_toEndOf="parent"
@@ -80,14 +80,18 @@
             android:id="@+id/btn_start_voice"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:background="@drawable/ic_start_voice" />
+            android:background="@drawable/ic_start_voice"
+            android:contentDescription="Bật mic"
+            />
 
         <ImageButton
             android:id="@+id/btn_stop_voice"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:background="@color/LightSlateGray"
-            android:src="@drawable/ic_stop_voice" />
+            android:src="@drawable/ic_stop_voice"
+            android:contentDescription="Tắt mic"
+            />
     </LinearLayout>
 
 

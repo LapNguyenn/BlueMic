@@ -5,10 +5,6 @@ import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
-import android.media.MediaRecorder;
-import android.media.audiofx.EnvironmentalReverb;
-import android.media.audiofx.Equalizer;
-import android.media.audiofx.PresetReverb;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
@@ -27,28 +23,22 @@ import android.media.AudioTrack;
 public class MainActivity extends AppCompatActivity {
 
     //=========== Permission
-    private String[] permissions = {Manifest.permission.RECORD_AUDIO};
+    private final String[] permissions = {Manifest.permission.RECORD_AUDIO};
     private static final int MICROPHONE_REQUEST_CODE = 200;
-    private boolean permissionGranted = false;
 
     //=========== Record
-    private AudioRecord audioRecord;
-    private AudioTrack audioTrack;
-    private int intBufferSize;
-    private short[] shortsAudioData;
-    private short[] processedShortAudioData;
     private boolean isRecording = false;
     //=========== Modify output sound
-    double amplitude  = 1;
-    double pitchFactor = 1;
-    private EnvironmentalReverb environmentalReverb;
-    private PresetReverb presetReverb;
-    private PresetReverb.Settings presetReverbSettings;
-    private Equalizer equalizer;
-    private Thread thread;
+    private float amplitude  = 1f;
+    private float pitchFactor = 1.86f;
+    protected int intRecordSampleRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_VOICE_CALL);
+    protected int intBufferSize = AudioRecord.getMinBufferSize(intRecordSampleRate,
+                    AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT);
+    protected int intOverlap = intBufferSize/4;
     //=========== Widget
-    private ImageButton btnStartVoice;
-    private ImageButton btnStopVoice;
+    protected ImageButton btnStartVoice;
+    protected ImageButton btnStopVoice;
 
     private SeekBar seekBar_amplitude;
     private SeekBar seekBar_pitchFactor;
@@ -60,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        MyAudioProcessor chibiProcess = new MyAudioProcessor(amplitude, pitchFactor, intRecordSampleRate, intBufferSize, intOverlap);
         // Check permission
         if (!(ContextCompat.checkSelfPermission(this, permissions[0]) == PackageManager.PERMISSION_GRANTED)) {
             //If not be granted, request permission again
@@ -70,8 +61,8 @@ public class MainActivity extends AppCompatActivity {
         seekBar_pitchFactor = findViewById(R.id.seekBar_pitchFactor);
         tv_amplitude = findViewById(R.id.tv_amplitude);
         tv_pitchFactor = findViewById(R.id.tv_pitchFactor);
-        tv_amplitude.setText("Amplitude: " + amplitude*100);
-        tv_pitchFactor.setText("pitchFactor: " + pitchFactor*100);
+        tv_amplitude.setText("Amplitude: " + String.format("%.1f", amplitude));
+        tv_pitchFactor.setText("pitchFactor: " + String.format("%.1f", pitchFactor));
         seekBar_amplitude.setProgress((int)amplitude*100);
         seekBar_pitchFactor.setProgress((int) pitchFactor*100);
 
@@ -80,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 amplitude = (float) seekBar_amplitude.getProgress()/100;
                 tv_amplitude.setText("Amplitude: " + amplitude);
+                chibiProcess.setAmplitude(amplitude);
             }
 
             @Override
@@ -96,8 +88,11 @@ public class MainActivity extends AppCompatActivity {
         seekBar_pitchFactor.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                pitchFactor = (double) seekBar_pitchFactor.getProgress() /100;
+                pitchFactor = (float) seekBar_pitchFactor.getProgress() /100;
                 tv_pitchFactor.setText("PitchFactor: " + pitchFactor);
+                if(chibiProcess != null){
+                    chibiProcess.setPitchFactor(pitchFactor);
+                }
             }
 
             @Override
@@ -120,7 +115,11 @@ public class MainActivity extends AppCompatActivity {
                     //If not be granted, request permission again
                     ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.RECORD_AUDIO}, MICROPHONE_REQUEST_CODE);
                 }else{
-                    startVoice();
+                    if(!isRecording) {
+                        isRecording = true;
+                        chibiProcess.startProcessing();
+                        Toast.makeText(MainActivity.this, "Mic đã bật, có thể bắt dầu nói", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });
@@ -130,107 +129,20 @@ public class MainActivity extends AppCompatActivity {
         btnStopVoice.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                stopVoice();
+                if (isRecording) {
+                    isRecording = false;
+                    chibiProcess.stopProcessing();
+                }
+                Toast.makeText(MainActivity.this, "Mic đã tắt", Toast.LENGTH_SHORT).show();
             }
         });
-
     }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == MICROPHONE_REQUEST_CODE)
-            permissionGranted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+//        if (requestCode == MICROPHONE_REQUEST_CODE);
     }
 
-    private void startVoice() {
-        if(!isRecording) {
-            isRecording = true;
-            thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    threadLoop();
-                }
-            });
-            thread.start();
-            Toast.makeText(MainActivity.this, "Mic đã bật, có thể bắt dầu nói", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void stopVoice() {
-        if (isRecording) {
-            isRecording = false;
-            try {
-                // Wait for thread to stop
-                thread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            // Stop audio
-            audioTrack.stop();
-            audioRecord.stop();
-            // Reset variable to null
-            audioRecord.release();
-            audioTrack.release();
-            audioRecord = null;
-            audioTrack = null;
-        }
-        Toast.makeText(MainActivity.this, "Mic đã tắt", Toast.LENGTH_SHORT).show();
-    }
-
-    private void threadLoop() {
-        //Audio quality
-        int intRecordSampleRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_VOICE_CALL);
-        //Record length
-        intBufferSize = AudioRecord.getMinBufferSize(intRecordSampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT);
-        shortsAudioData = new short[intBufferSize];
-        processedShortAudioData = new short[intBufferSize];
-
-        //Start a short record
-        if(ContextCompat.checkSelfPermission(this, permissions[0]) == PackageManager.PERMISSION_GRANTED){
-            audioRecord = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-                    intRecordSampleRate,
-                    AudioFormat.CHANNEL_IN_STEREO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    intBufferSize);
-
-            audioTrack = new AudioTrack(AudioManager.STREAM_VOICE_CALL,
-                    intRecordSampleRate,
-                    AudioFormat.CHANNEL_IN_STEREO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    intBufferSize,
-                    AudioTrack.MODE_STREAM);
 
 
-            audioTrack.setPlaybackRate(intRecordSampleRate);
-            audioRecord.startRecording();
-            audioTrack.play();
-            //play short record
-            while (isRecording){
-                audioRecord.read(shortsAudioData, 0, shortsAudioData.length);
-                // Reduce amplitude (biên độ)
-                for(int i = 0; i < processedShortAudioData.length; i++){
-                    processedShortAudioData[i] = (short) Math.min(shortsAudioData[i]*amplitude, Short.MAX_VALUE);
-                }
-                // Increase pitch (tần số)
-                for (int i = 0; i < processedShortAudioData.length; i++) {
-                    int newIndex = (int) (i / pitchFactor);
-                    if (newIndex < shortsAudioData.length) {
-                        processedShortAudioData[newIndex] = (short) Math.min(shortsAudioData[newIndex] + shortsAudioData[i], Short.MAX_VALUE);
-                    }
-                }
-                for (int i = 0; i < processedShortAudioData.length; i++) {
-                    processedShortAudioData[i] = (short) Math.max(processedShortAudioData[i] - shortsAudioData[i], Short.MIN_VALUE);
-                }
-
-                audioTrack.write(processedShortAudioData, 0, processedShortAudioData.length);
-            }
-        }else{
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, MICROPHONE_REQUEST_CODE);
-            threadLoop();
-        }
-    }
 }
