@@ -14,20 +14,30 @@ import be.tarsos.dsp.resample.RateTransposer;
 import be.tarsos.dsp.resample.Resampler;
 
 public class MyAudioProcessor{
-    private float amplitude = 1.5f;
-    private float pitchFactor = 2f;
-    private float rateTransposeFactor = 0.5f;
+    private float amplitude = 1f;
+    private float pitchFactor = 1f;
     float [] buffer;
     PitchShifter pitchShifter;
-    AndroidAudioPlayer player;
 
     private AudioDispatcher dispatcher = null;
+    private Thread audioThread = null;
     public MyAudioProcessor(){
     }
-    public void startProcessing() {
+    public void startProcessing(){
+            if (audioThread != null && audioThread.isAlive()) {
+                return;
+            }
+            audioThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    processAudio();
+                }
+            });
+            audioThread.start();
+    }
+    public void processAudio() {
         if(this.dispatcher != null && !dispatcher.isStopped()){
             this.dispatcher.stop();
-            this.dispatcher = null;
         }
         try {
             int SAMPLE_RATE = 44100;
@@ -68,17 +78,15 @@ public class MyAudioProcessor{
                     public void processingFinished() {
                     }
                 });
-            dispatcher.addAudioProcessor(new RateTransposer(this.rateTransposeFactor));
+            dispatcher.addAudioProcessor(new RateTransposer(1/this.pitchFactor));
             dispatcher.addAudioProcessor(new GainProcessor(this.amplitude));
-            player = new AndroidAudioPlayer(new TarsosDSPAudioFormat(
+            dispatcher.addAudioProcessor(new AndroidAudioPlayer(new TarsosDSPAudioFormat(
                     SAMPLE_RATE,
                     1024,
                     1,
                     true,
                     false
-            ), 32, AudioManager.STREAM_VOICE_CALL);
-
-            dispatcher.addAudioProcessor(player);
+            ), 32, AudioManager.STREAM_VOICE_CALL));
             dispatcher.addAudioProcessor(new AudioProcessor() {
                 @Override
                 public boolean process(AudioEvent audioEvent) {
@@ -104,10 +112,12 @@ public class MyAudioProcessor{
             e.printStackTrace();
         }
     }
-    public void stopProcessing(){
+    public void stopProcessing() throws InterruptedException {
         if(this.dispatcher != null && !dispatcher.isStopped()){
             this.dispatcher.stop();
-            this.dispatcher = null;
+        }
+        if (audioThread != null && audioThread.isAlive()) {
+            audioThread.join();
         }
     }
 
@@ -120,16 +130,9 @@ public class MyAudioProcessor{
     }
     public void setAmplitude(float amplitude) {
         this.amplitude = amplitude;
-        startProcessing();
     }
 
     public void setPitchFactor(float pitchFactor) {
         this.pitchFactor = pitchFactor;
-        startProcessing();
-    }
-
-    public void setRateTransposerFactor(float rateTransposeFactor) {
-        this.rateTransposeFactor = rateTransposeFactor;
-        startProcessing();
     }
 }
