@@ -1,6 +1,6 @@
-# Chibi Voice Processor
+# BlueMic
 
-Chibi Voice Processor is an Android application that processes real-time audio input and output to produce a chibi-style voice effect. This application is developed using Android Studio and utilizes the TarOS library for audio processing.
+BlueMic or Chibi Voice Processor is an Android application that processes real-time audio input and output to produce a chibi-style voice effect. This application is developed using Android Studio and utilizes the TarOS library for audio processing.
 
 ## Features
 
