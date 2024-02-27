@@ -26,4 +26,3 @@ Chibi Voice Processor is an Android application that processes real-time audio i
 Contributions are welcome! If you have any ideas, suggestions, or improvements, feel free to open an issue or create a pull request.
 
 ## License
-This project is licensed under the [MIT License](LICENSE).
